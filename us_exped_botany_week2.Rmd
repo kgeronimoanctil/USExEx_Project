@@ -1,0 +1,575 @@
+---
+title: "US Exploring Expedition, Botany at NMNH"
+author: "Kayla Geronimo-Anctil"
+date: "7/5/2022 to 7/15/2022"
+output: 
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(plyr)
+library(tidyverse)
+library(treemapify)
+```
+
+Downloading information from [the botany collections/website](https://collections.nmnh.si.edu/search/botany/#new-search) at nmnh, going to the *Search by Field* tab, going down to *Expedition* and then clicking on entries related to the Wilkes Expedition. These are the relevant entries that I downloaded to csv.
+
+* U.S. Exploring Expedition (9244)
+* U.S. Exploring Expedition under the command of Capt. Wilkes (4)
+* U.S. Exploring Expedition under Wilkes, 1838-1842 (3)
+* United States Exploring Expedition (7337)
+* US Exploring Expedition under the command of Capt. Wilkes (4)
+
+```{r message=FALSE}
+nmnhsearch_1 <- read_csv("data_raw/nmnhsearch-1.csv") #U.S. Exploring Expedition
+nmnhsearch_2 <- read_csv("data_raw/nmnhsearch-2.csv") #U.S. Exploring Expedition under the command of Capt. Wilkes
+nmnhsearch_3 <- read_csv("data_raw/nmnhsearch-3.csv") #U.S. Exploring Expedition under Wilkes, 1838-1842
+nmnhsearch_4 <- read_csv("data_raw/nmnhsearch-4.csv") #United States Exploring Expedition
+nmnhsearch_5 <- read_csv("data_raw/nmnhsearch-5.csv") #US Exploring Expedition under the command of Capt. Wilkes
+
+nmnh_bind <- rbind(nmnhsearch_1,nmnhsearch_2,nmnhsearch_3, nmnhsearch_4, nmnhsearch_5)
+```
+
+# Potential Issues
+
+I don't know why they don't have expedition as a variable/column in the csv, as they do have it as a section online. I'm also not sure why the Barcode column is being read in as a character type...   
+Even though I only downloaded these five datasets, I am finding data from other expeditions... [Here is an example of one](https://collections.nmnh.si.edu/search/botany/?ark=ark:/65665/35270c8b679604446a2cf4d9cd102a7b9), listed as "United States Exploring Expedition" but the year is 1946. This example is part of the "Flora of Micronesia" from "Special Collections" issue. I won't make an in-depth section about it, but I did notice that there were some scanned images missing, or also barcodes or catalog number missing from the dataframe. If I say that I looked at a particular number of images/pages of one of these issues, I used a random number generator for the dataframe and looked at the new dataframe that it returned.
+
+**Duplicate Rows**   
+*Total observations/rows with this issue (before `distinct()`):* 16592  
+*Total observations/rows with this issue (after `distinct()`):* 9265
+*Filtered out? (on this file):* Yes  
+*Issue:* Realized that there were duplicate rows because I was seeing the same image twice, came back to the dataset and noticed same barcode, catalog number, and EZID. `distinct()` does not use a specific column, like "Barcode" or "Catalog Number", because I realized that it was also getting rid of some rows that were not identical, just because they had an NA in that column.
+
+**Letters in Catalog Number**   
+*Total observations/rows with this issue:* 2   
+*Filtered out? (on this file):* No, not for this reason   
+*Issue:* All catalog numbers have just numbers except for two rows. Their corresponding Barcodes are 471530 and 376354. The catalog numbers are "90682 A" and "2590781 A", respectively. When these data are read in as a tibble, these catalog numbers are replaced with NAs.   
+  
+  
+## Unlikely to have been from the US Exploring Expedition
+### Listed online as - United States Exploring Expedition 
+  
+**Flora of Micronesia under Special Collections**   
+*Total observations/rows with this issue (before `distinct()`):* 86  
+*Total observations/rows with this issue (after `distinct()`):* 43  
+*Datasets that it concerns, with count:* nmnhsearch_1 (43), nmnhsearch_4 (43)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is 1946. I looked at at least 12 images/their search results, and all of those have the expedition listed as "United States Exploring Expedition" but had nothing about this expedition in their image.   
+  
+**Flora of Hawaii under Special Collections**   
+*Total observations/rows with this issue (before `distinct()`):* 8  
+*Total observations/rows with this issue (after `distinct()`):* 4  
+*Datasets that it concerns, with count:* nmnhsearch_1 (4), nmnhsearch_4 (4)  
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: Other "Flora of Hawaii" exist in the datasets with a year). Year is NA. I looked at all of the images. All have expedition listed on their page (but not in their image) as "United States Exploring Expedition". I believe that catalog numbers 3227176 and 3227175 are partner sheets, as are 3117177 and 3227178. I decided to filter it out, as all of these specimens came from the [Lyon Arboretum](https://manoa.hawaii.edu/lyon/about/history-and-mission/) (1918 land purchased and being prepared for the HSPA Manoa Arboretum, 1957 renamed the Harold L. Lyon Arboretum -- both of these years are after the 1842 of the expedition).  
+
+**Blanchard, W. H. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 4  
+*Total observations/rows with this issue (after `distinct()`):* 2  
+*Datasets that it concerns, with count:* nmnhsearch_1 (2), nmnhsearch_4 (2)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is 1905. Expedition listed online as "United States Exploring Expedition", but there is no mention of it in the specimen images. Initially, the only W. H. Blanchard that I could find is William H. Blanchard, but he was a general that was born in 1916. After searching for "W. H. Blanchard botany" I was able to find a ["William Henry Blanchard"](http://sweetgum.nybg.org/science/vh/person-details/?irn=117284), that maybe lived from 1850-1922 and [lived](https://www.biodiversitylibrary.org/item/258556#page/175/mode/1up) around [Vermont](https://www.biodiversitylibrary.org/item/258556#page/173/mode/1up) (these specimens were collected in Maine).  
+
+**Flora of Polynesia under Special Collections**  
+*Total observations/rows with this issue (before `distinct()`):* 2  
+*Total observations/rows with this issue (after `distinct()`):* 1  
+*Datasets that it concerns, with count:* nmnhsearch_1 (1), nmnhsearch_4 (1)  
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: Other "Flora of Hawaii" exist in the datasets with a year, and with a Wilkes Expedition in the Special Collections part).Year is NA. Expedition listed on the page is "United States Exploring Expedition", however this is not in the image. The image has more about how it was collected on one of Captain Cook's voyages.  
+
+
+### Listed online with different expeditions
+  
+**Arizona Project under Special Collections**  
+*Total observations/rows with this issue (before `distinct()`):* 8  
+*Total observations/rows with this issue (after `distinct()`):* 8  
+*Datasets that it concerns, with count:* nmnhsearch_1 (8)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1859 and 1896. I looked at all of the images. All but one have expedition listed on their page and in their image as "Fewkes Exploring Expedition of 1896". That one has the expedition listed on the page as Macomb's San Juan Exploring Expedition, and in the image it did have this expedition along with "Newberry" at the bottom (this is on the one that says "collector unknown").  
+
+**Newberry, J. S. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 114  
+*Total observations/rows with this issue (after `distinct()`):* 114   
+*Datasets that it concerns, with count:* nmnhsearch_1 (114)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1857 and 1859. five of these have year as NA. I looked at 10, one had year NA. Of these 10, two were listed as "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)", and the rest were listed as "Macomb's San Juan Exploring Expedition". The one with year NA did not have a year written on the paper. Not all, but many of the Macomb's Exploring Expedition papers (the "Newberry in McComb's Exped." part) was written it looks like by the same person that wrote the below two sections (on Newberry in Collectors). I believe that this is the same Newberry for these three Collector(s). [Here](https://en.wikipedia.org/wiki/John_Strong_Newberry) is an website on John S. Newberry, who I believe these all are. 
+
+**NA under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 10  
+*Total observations/rows with this issue (after `distinct()`):* 10  
+*Datasets that it concerns, with count:* nmnhsearch_1 (10)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is NA for eight entries, 1858 or 1876 otherwise. Expedition is listed as "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)" for nine entries, and "North Pacific Exploring Expedition" for one (can confirm that this was in the images). For the one with date collected as 24 Mar ----, it looks like the image says "Torrey's Report" or "Forrey's Report", but I was able to find more search results if I looked for a "Torrey" -- and it looks like there was a Dr. John Torrey that was a botanist. [In one result](https://www.journals.uchicago.edu/doi/pdf/10.1086/325671), it says this about the connection between Torrey and the Colorado Exploring Expedition -- "The Report of Lieut. Ives' Exploration of the Colorado
+was published with a Botanical Appendix, mainly by Dr. Torrey."   
+
+  
+### Listed online as - North Pacific Exploring Expedition
+  
+**Stimpson, W. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 10  
+*Total observations/rows with this issue (after `distinct()`):* 10  
+*Datasets that it concerns, with count:* nmnhsearch_1 (10)  
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: 1 of the 10 lists Stimpson and another person as collectors). Years between 1854 and 1855 (minus one that has NA, but no image to reference). Out of 10, 6 do not have images. All have the expedition listed as "North Pacific Exploring Expedition". Based on the expedition and [collector](https://en.wikipedia.org/wiki/William_Stimpson) (that was born 1832, so would've been alive but a child during the US Exploring Expedition) I think that the one without a date is unlikely to have been part of the US Exploring Expedition. 
+
+**Collection of Sylvia A. Earle under Special Collections**  
+*Total observations/rows with this issue (before `distinct()`):* 1  
+*Total observations/rows with this issue (after `distinct()`):* 1  
+*Datasets that it concerns, with count:* nmnhsearch_1 (1)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is NA. No scanned image after following the link. Expedition listed as "North Pacific Exploring Expedition".  
+
+**Collection of Francis Drouet under Special Collections**  
+*Total observations/rows with this issue (before `distinct()`):* 4  
+*Total observations/rows with this issue (after `distinct()`):* 4  
+*Datasets that it concerns, with count:* nmnhsearch_1 (4)  
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: There is one observation under Special Collections with "Collection of Francis Drouet" that is not included in these four and this is not about it, as it has "Wilkes Expedition" in "Special Collections" too). Years between 1853 to 1856 ("1853 to 1856 (1853-56)", "1853 to 1856 (1853--56)", and one NA). Expedition listed as "North Pacific Exploring Expedition". The one with the year as NA in the scanned image has the date as "1853--56".  
+
+**Wright, C. under Collector(s), where Date Collected is not NA**  
+*Total observations/rows with this issue (before `distinct()`):* 1396  
+*Total observations/rows with this issue (after `distinct()`):* 1396  
+*Datasets that it concerns, with count:* nmnhsearch_1 (1399) (see below for note)   
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: C. Wright was the Collector for those filtered out above called "Collection of Francis Drouet" (3)). Years between 1853 and 1856, over 10 different structures of date in "Date Collected". I looked at two different sample groups of ten (so 20), all had North Pacific Exploring Expedition. Likely [Charles Wright](https://en.wikipedia.org/wiki/Charles_Wright_(botanist)). According to this website, none of the expeditions that Charles Wright went on were the US Exploring Expedition.  
+
+
+### Listed online as - Western Union Extension Telegraph Exploring Expedition
+
+**Petropaulski under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 2  
+*Total observations/rows with this issue (after `distinct()`):* 2  
+*Datasets that it concerns, with count:* nmnhsearch_1 (2)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1865 and 1866 (one has date as NA, but the corresponding image also shows 1865-66). Both have expedition listed as "Western Union Extension Telegraph Exploring Expedition". Also -- after some searching, I think that Petropaulski might not actually be a person, but a place. I was looking at some letters from the 1870s, and they refer to buying things *in* Petropaulski, or sometimes saying Petropaulski, Kamchatka. To further support this, if you go to [this website](https://archives.library.uaf.edu/islandora/objects/eerl-5828) and scroll down to "About", you can see that they refer to "Petropaulski Harbor" and that it is stamped by the Western Union Telegraph Co., which I think might link this expedition and potential... collection site?  
+
+**Smith, E. E. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 1  
+*Total observations/rows with this issue (after `distinct()`):* 1  
+*Datasets that it concerns, with count:* nmnhsearch_1  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1865 and 1866. Expedition listed online as "Western Union Extension Telegraph Exploring Expedition". I was unable to find E.E. Smith's full name after several minutes of searching.  
+
+**Dall, W. H. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 13  
+*Total observations/rows with this issue (after `distinct()`):* 13  
+*Datasets that it concerns, with count:* nmnhsearch_1 (13)  
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: 1 of the 13 lists Dall and another person as collectors -- this one doesn't have an associated special collection). Years between 1865 and 1866. Expedition listed online as "Western Union Extension Telegraph Exploring Expedition". The one that lists Dall and another person as collectors originally listed Petropaulski, but it is in handwriting in the scanned image that instead says Dall and Whymper. [William Healey Dall](https://siarchives.si.edu/collections/fbr_item_modsi515).  
+
+**Bischoff, F. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 46  
+*Total observations/rows with this issue (after `distinct()`):* 46  
+*Datasets that it concerns, with count:* nmnhsearch_1 (46)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1865 and 1866 (one is listed as NA, some have date collected as "1865 to 1866 (-- --- 1865 to -- --- 1866))" while others just have "1865 to 1866"). Expedition listed online as "Western Union Extension Telegraph Exploring Expedition". May be Ferdinand Bischoff?  Looked at at least 10 images/their information, all had "Ferd. Bischoff".
+ 
+**Rothrock, J. T. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 53  
+*Total observations/rows with this issue (after `distinct()`):* 53  
+*Datasets that it concerns, with count:* nmnhsearch_1 (53)  
+*Filtered out? (on this file):* Yes   
+*Issue:* (Note: Two have NA under Special Collections, three have NA under Date Collected. Inputs for Date Collected are also in different formats). Years between 1865 and 1866. Looked at 10, all had the expedition listed as "Western Union Extension Telegraph Exploring Expedition" (one of these rows had both the NA for special collections, and NA under date collected, and another row had just the NA under date collected). All of their images had the 1865-66 on their paper.  
+ 
+**Fisher, -- under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 1  
+*Total observations/rows with this issue (after `distinct()`):* 1  
+*Datasets that it concerns, with count:* nmnhsearch_1 (1)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1865 and 1866. Expedition listed as "Western Union Extension Telegraph Exploring Expedition". Collector originally listed as Ferd. Bischoff, which was later crossed out and had "Dr. Fisher" written in. Maybe Dr. [Henry P. Fisher](https://alaskahistoricalsociety.org/about-ahs/special-projects/150treaty/150th-resource-library/new-articles/independence-day-in-russian-america-dr-henry-fishers-jubilee-july-4-1865/)?   
+
+**Fischer, -- under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 1  
+*Total observations/rows with this issue (after `distinct()`):* 1  
+*Datasets that it concerns, with count:* nmnhsearch_1 (1)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1865 to 1866. Expedition listed online as "Western Union Extension Telegraph Exploring Expedition". In the image, there is something written in front of "Fischer" but I could not read it... could it be "Dr. Fisher"? I couldn't find a "Fischer" online associated with the expedition after a little search, and I also don't know what other cursive letter at least mildly resembles that one/two...  
+
+**Bannister, H. M. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 35  
+*Total observations/rows with this issue (after `distinct()`):* 35  
+*Datasets that it concerns, with count:* nmnhsearch_1 (35)  
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: Date Collected in different formats. "1865 to 1866 (-- --- 1865 to -- --- 1866)", "1865 to 1866", "30 May 1865 or 30 May 1866", "4 Jul 1865", NA). Dates between 1865 and 1866. I looked at 13, all had expedition listed as "Western Union Extension Telegraph Exploring Expedition". One that had the year as NA looks like it says "June 21" (?), but it also had printed 1865-66, so I'm not sure why it says NA on the downloaded data. Likely [Henry](https://archiveshub.jisc.ac.uk/search/archives/9d1ba9ca-46ba-3944-8150-6c193374f144) Martyn [Bannister](https://transcription.si.edu/project/11100).  
+
+
+### Listed online as - Colorado Exploring Expedition, 1857-1858 (Ives Exploration)  
+
+**Cooper, J. G. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 1  
+*Total observations/rows with this issue (after `distinct()`):* 1  
+*Datasets that it concerns, with count:* nmnhsearch_1 (1)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Years between 1853 and 1855 (? why are the years collected outside of its expedition time range...?). Expedition listed online as "Colorado Exploring Expedition, 1857-1858 (Ives Exploration)". However, in its scanned image it is listed as "U.S. Pacific Railroad Survey under Isaac I. Stevens, "(last part with date obscured by plant). Bottom of the little card does say "Dr. J. G. Cooper, Naturalist". Likely [James Graham Cooper](https://en.wikipedia.org/wiki/James_Graham_Cooper).  
+
+**Ives, J. C. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 1  
+*Total observations/rows with this issue (after `distinct()`):* 1  
+*Datasets that it concerns, with count:* nmnhsearch_1 (1)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is 1858. Expedition listed online as "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)". Lieutenant [Joseph Cristmas Ives](https://naturalhistory.si.edu/research/botany/about/historical-expeditions/colorado-exploring-expedition-ives-expedition). Couldn't see in the image if J. C. Ives was written.  
+
+
+### Listed online as - J. W. Powell Colorado Exploring Expedition, 1868
+
+**Vasey, G. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 16  
+*Total observations/rows with this issue (after `distinct()`):* 16  
+*Datasets that it concerns, with count:* nmnhsearch_1 (16)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Only three have date, others all have NA. I looked at 10. All had expedition listed as "J. W. Powell Colorado Exploring Expedition, 1868". All but three had that expedition name in their scanned image. All had date as 1868 in their image (interesting because all but one (of these 10) had Date Collected as NA in the dataframe). "Dr. Geo. Vasey, Botanist" in the images, likely Dr. [George Vasey](https://en.wikipedia.org/wiki/George_Vasey_(botanist)).  
+
+
+### Listed online as - Macomb's San Juan Exploring Expedition  
+
+**Newberry under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 25   
+*Total observations/rows with this issue (after `distinct()`):* 25   
+*Datasets that it concerns, with count:* nmnhsearch_1 (25)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is 1859 (one NA, one 18--). Expedition listed as Macomb's San Juan Exploring Expedition, though it looks like it is written "McComb's" on the image. I looked at 11. All including the one with NA have 1859 in their image minus the one with the date as 18--, I can confirm that the last two numbers are cut off on the paper. However, the writing for that part looks to be written by the same person on all papers, and they all had "Newberry in McComb's Exped.1859". Maybe [John S. Newberry](https://naturalhistory.si.edu/research/botany/about/historical-expeditions/macombs-san-juan-exploring-expedition), maybe same person as the above and below sections on Newberry?  
+
+**Newberry, -. under Collector(s)**   
+*Total observations/rows with this issue (before `distinct()`):* 14  
+*Total observations/rows with this issue (after `distinct()`):* 14  
+*Datasets that it concerns, with count:* nmnhsearch_1 (14)  
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is 1859. Expedition listed as "Macomb's San Juan Exploring Expedition" (all except for one, where it is listed as "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)", even though has the same expedition as all of the others?), though it looks like it is written "McComb's" on the image. The writing for the collector/expedition/date looks to be written by the same person on all papers (and also looks to be the same person that wrote for the above two sections "Newberry"), and they all had "Newberry in McComb's Exped.1859". It was NOT written as "Newberry, -." on the paper, so I think that the difference is due to the transcriber maybe? Maybe [John S. Newberry](https://naturalhistory.si.edu/research/botany/about/historical-expeditions/macombs-san-juan-exploring-expedition)?  
+
+**Wright, C. under Collector(s), where Date Collected is NA**  
+*Total observations/rows with this issue (before `distinct()`):* 22    
+*Total observations/rows with this issue (after `distinct()`):* 21   
+*Datasets that it concerns, with count:* nmnhsearch_1 (23), nmnhsearch_4 (1)   
+*Filtered out? (on this file):*  
+*Issue:* (Collection of Sylvia A. Earle (1) above, Collection of Francis Drouet (1) above). Year is NA. Online, Expedition is listed as "North Pacific Exploring Expedition" for all except one entry, which is "United States Exploring Expedition" (I can confirm that this was in the image). This is strange because on the page for Charles Wright it said that he didn't go on this expedition. Could this be a case of U.S. North Pacific Exploring Expedition being referred to as just U.S. Expl. Exped.? Also -- 8 entries have no images. So, for the entries that do have images -- the year is listed as 1853-56. Likely [Charles Wright](https://en.wikipedia.org/wiki/Charles_Wright_(botanist)). According to this website, none of the expeditions that Charles Wright went on were the US Exploring Expedition.   
+
+
+### Listed online as - Fewkes Exploring Expedition of 1896   
+
+**Hough, Mrs. W. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 11   
+*Total observations/rows with this issue (after `distinct()`):* 11   
+*Datasets that it concerns, with count:* nmnhsearch_1 (11)   
+*Filtered out? (on this file):* Yes  
+*Issue:* Year is 1896. Expedition is "Fewkes Exploring Expedition of 1896". In all of the scanned images, the collector is listed as "Walter Hough", not "Mrs. Walter Hough". "Mrs. Walter Hough", known as "Jennie Myrtle Zuck/Hough", was also a botanist. According to Sue Lutz, a collections manager, these data had been entered in EMu prior to the large conveyor project, and is a case of the wrong use of the ditto key. Therefore, these entries should be attributed to her husband, Walter Hough.  
+*Note:* This was addressed by Sue Lutz and changed July 11, 2022.
+
+**Hough, W. under Collector(s)**  
+*Total observations/rows with this issue (before `distinct()`):* 105  
+*Total observations/rows with this issue (after `distinct()`):* 105  
+*Datasets that it concerns, with count:* nmnhsearch_1 (112) (see below for note)   
+*Filtered out? (on this file):* Yes  
+*Issue:* (Note: Walter Hough was the Collector for those filtered out above called "Arizona Project", so while technically he is listed on 112 rows, 105 hadn't been addressed). Year is between 1896 and 1897. Sample of 10, all were "Fewkes Exploring Expedition of 1896". In all images, listed as [Walter Hough](https://en.m.wikipedia.org/wiki/Walter_Hough).   
+
+## Mixed likelihoods to have been from the US Exploring Expedition
+### Listed online with different expeditions
+
+**Collector unknown under Collector(s)**  
+Without Wilkes Expedition in the collectors or special collections, and years specified to anything outside of years being 1838-1842 (so years being NA is included in the issue below)   
+*Total observations/rows with this issue (before `distinct()`):* 149   
+*Total observations/rows with this issue (after `distinct()`):* 79   
+*Datasets that it concerns, with count:* nmnhsearch_1 (96), nmnhsearch_2 (2), nmnhsearch_4 (82), nmnhsearch_5 (2) (see note below)   
+*Filtered out? (on this file):* Partially (Note: all entries that weren't for sure related to the target expedition were filtered out. this meant 76 of 79 were filtered out)   
+*Issue:* (Note: some of the entries filtered out above may have had collector unknown). Expedition listed as "United States Exploring Expedition", "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)", "North Pacific Exploring Expedition", and "Macomb's San Juan Exploring Expedition". I created the dataframe below, after following all 79 EZIDs.   
+   
+Barcode = this is the unique ID that is used on the main dataframe   
+Target_Expd_EZIDdata = if after following the EZID if expedition is listed as the target expedition, US Exploring Expedition   
+Target_Expd_Image = if the target expedition is written or printed in the scanned image. TRUE = yes, NA = no expedition written/typed, FALSE = an expeditions is written, but it is not the target expedition. I put NA if there is no image.   
+is_possible_date = if there is a date written, does the date work with the target expedition.   
+Note = extra notes.   
+```{r CollectorUnknownBarcode_df, echo=FALSE, warning=FALSE}
+# I did it this was instead of using data.frame() so that it would be a little more understandable / less messy i think for next people... but also not needing to create many intermediate objects
+df <- rbind(
+  c("00007317", TRUE, NA, NA, NA), 
+  c("00008329", TRUE, NA, FALSE, "Date Collected is May 19, 1940. Collector is listed as Collector unknown, but collection number has H.p.traub? Hamilton P. Traub is written on the scanned image. Maybe Hamilton Paul Traub?"), 
+  c("00010109", TRUE, NA, NA, NA),
+  c("00010175", TRUE, NA, NA, NA),
+  c("00032473", TRUE, NA, NA, NA), 
+  c("00040578", TRUE, NA, FALSE, "I think the date collected is August 1962"), 
+  c("00050924", TRUE, NA, FALSE, "Date prepared is 11 May 1961, so I think date collected must be sometime around there"),
+  c("00050925", TRUE, NA, NA, "The date received was 1937, but I dont know when it was prepared or collected"),
+  c("00159363", TRUE, NA, NA, "I dont know when it was prepared or collected"), 
+  c("00172881", TRUE, NA, FALSE, "I believe it was collected 1904"), 
+  c("00175902", FALSE, FALSE, FALSE, "Collector is Newberry, Expedition is Macombs"),
+  c("00176664", TRUE, NA, NA, "no scanned image"),
+  c("00176999", TRUE, NA, NA, "no scanned image"),
+  c("00180385", TRUE, NA, NA, "no scanned image"),
+  c("00180637", TRUE, NA, FALSE, "I believe the date collected is 1915"),
+  c("00180683", TRUE, NA, FALSE, "I believe the date collected is 1915"),
+  c("00180684", TRUE, NA, FALSE, "I believe the date collected is 1915"),
+  c("00180708", TRUE, NA, NA, "received 1954"),
+  c("00180722", TRUE, NA, NA, "source was john poindexter, but no collector listed. received may 19, 1941"), 
+  c("00180734", TRUE, NA, FALSE, "december 27, 1923"),
+  c("00180737", TRUE, NA, FALSE, "I believe collection date is August 14/15, 1915"),
+  c("00180761", TRUE, NA, FALSE, "I noticed collector is written as J.N. Rose with the assistant P.G. Russell. I believe collection date is sept 21 1915"),
+  c("00180783", TRUE, NA, FALSE, "I noticed collector is written as J.N. Rose with the assistant P.G. Russell. I believe collection date is 1915"),
+  c("00180856", TRUE, NA, NA, "no scanned image"),
+  c("00181120", TRUE, NA, NA, "no scanned image"),
+  c("00182266", TRUE, NA, FALSE, "I noticed collector is written as J.N. Rose with the assistant P.G. Russell. I believe collection date is sept 21 1915"),
+  c("00182283", TRUE, NA, FALSE, "I believe the date collected is december 19, 1923"),
+  c("00182361", TRUE, NA, FALSE, "received may 1959"),
+  c("00182381", TRUE, NA, FALSE, "I believe the date collected is sept 1919"),
+  c("00182392", TRUE, NA, FALSE, "received sept 1956"),
+  c("00182398", TRUE, NA, FALSE, "received jan 1954"),
+  c("00182403", TRUE, NA, FALSE, "received september 1956"),
+  c("00182423", TRUE, NA, NA, "no scanned image"),
+  c("00182440", TRUE, NA, NA, "I dont know what march 1950 is"),
+  c("00182442", TRUE, NA, FALSE, "april 1923. collector i think is luigi buscalioni"),
+  c("00182445", TRUE, NA, FALSE, "1911. collector i think is luigi buscalioni, I don't know why it is written as luizi"),
+  c("00182456", TRUE, NA, FALSE, "date prepared is march 6 1961, source is H. Johnson"),
+  c("00182465", TRUE, NA, FALSE, "I noticed collector is written as J.N. Rose with the assistant P.G. Russell. july 21, 1915"),
+  c("00182468", TRUE, NA, FALSE, "I noticed collector is written as J.N. Rose with the assistant P.G. Russell. july 10, 1915"), 
+  c("00182470", TRUE, NA, FALSE, "I noticed collector is written as J.N. Rose with the assistant P.G. Russell. august 14/15 1915"), 
+  c("00182471", TRUE, NA, FALSE, "I noticed collector is written as J.N. Rose with the assistant P.G. Russell. july 10, 1915"), 
+  c("00200674", TRUE, NA, NA, NA), 
+  c("00200678", TRUE, NA, FALSE, "date prepared is October 26, 1962"), 
+  c("00200689", TRUE, NA, NA, "no scanned image"), 
+  c("00222642", TRUE, NA, FALSE, "maybe date collected is 1903"), 
+  c("00227011", TRUE, NA, NA, NA), 
+  c("00290595", TRUE, NA, FALSE, "collected in 1922"), 
+  c("00290597", TRUE, NA, FALSE, "collected in 1922"), 
+  c("00299638", TRUE, NA, NA, "no scanned image"), 
+  c("00304659", TRUE, NA, NA, NA), 
+  c("00304667", TRUE, NA, NA, NA),
+  c("00306434", TRUE, NA, NA, NA),
+  c("00307416", TRUE, NA, NA, NA),
+  c("00307418", TRUE, NA, NA, NA),
+  c("00319114", FALSE, FALSE, FALSE, "Collector is listed as Collector unknown, but in the scanned image the little card says C. Wright Coll. which is what others with the collector listed as C. Wright had."),
+  c("00319115", FALSE, FALSE, FALSE, "Collector is listed as Collector unknown, but in the scanned image the little card says C. Wright Coll. which is what others with the collector listed as C. Wright had."),
+  c("00319442", TRUE, NA, NA, "Date Collected is listed as NA, but in the scanned image it shows the date as December 2, 1974. Collector is listed as Collector unknown, but the scanned image says that the collector was Oswaldo Handro."),
+  c("00319446", TRUE, NA, NA, "Date Collected is listed as NA, but there is a very faint 1903 at the bottom right of the card in the image."),
+  c("00334239", TRUE, NA, NA, "I see an 1888, but I dont know if this is the date collected"),
+  c("00363476", TRUE, NA, NA, NA),
+  c("00379470", TRUE, NA, FALSE, "November 10, 1970, collected by R.M. Klein."),
+  c("00390118", TRUE, NA, FALSE, "1903 faintly typed"),
+  c("00396604", TRUE, TRUE, NA, NA),
+  c("00397374", TRUE, NA, NA, NA),
+  c("00561498", TRUE, NA, NA, NA),
+  c("00562896", TRUE, NA, NA, NA),
+  c("00562897", TRUE, NA, NA, NA),
+  c("00567414", TRUE, NA, NA, NA),
+  c("01075395", FALSE, FALSE, NA, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)"),
+  c("01118408", FALSE, FALSE, FALSE, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition). Some collected March 25, others collected November 9 1891 (death valley expedition)"),
+  c("01159525", FALSE, FALSE, NA, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)"),
+  c("01160207", FALSE, FALSE, NA, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)"),
+  c("01173989", TRUE, TRUE, NA, NA),
+  c("01178129", FALSE, FALSE, NA, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)"),
+  c("01185921", FALSE, FALSE, NA, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)"),
+  c("01189841", FALSE, FALSE, NA, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition)"),
+  c("01199703", FALSE, FALSE, FALSE, "Colorado Exploring Expedition, 1857-1858 (Ives Expedition). year listed is 1858"),
+  c("01300604", TRUE, NA, NA, "no scanned image"),
+  c("01317224", TRUE, TRUE, NA, NA)
+) %>% 
+  as_tibble() %>% 
+  rename(Barcode = V1, Target_Expd_EZIDdata = V2, Target_Expd_Image = V3, Is_Possible_Date = V4, Note = V5) %>% 
+  transform(Target_Expd_EZIDdata = as.logical(Target_Expd_EZIDdata), 
+            Target_Expd_Image = as.logical(Target_Expd_Image),
+            Is_Possible_Date = as.logical(Is_Possible_Date))
+df
+```
+
+## Likely to have been from the US Exploring Expedition  
+### Listed online as - United States Exploring Expedition   
+
+**Brackenridge, W. D. under Collector(s)**   
+*Total observations/rows with this issue (before `distinct()`):* 4 (see note below)   
+*Total observations/rows with this issue (after `distinct()`):* 2   
+*Datasets that it concerns, with count:* nmnhsearch_1 (2), nmnhserch_4 (2)   
+*Filtered out? (on this file):* No   
+*Issue:* (Note: This only references the entries that did not have anything relating to the Wilkes Expedition in the Collectors or Special Collections columns. The reason that I am including this here is because besides having downloaded the data there is no other direct identifier I dont think that shows that these were from the US Exploring Expedition). Barcodes = 01098237 and 00194355. No scanned image. However, the year is possible and Brackenridge is the collector for other entries that do have Wilkes Expedition written under collector or special collections.  
+
+**Cunningham, A. under Collector(s)**   
+*Total observations/rows with this issue (before `distinct()`):* 36   
+*Total observations/rows with this issue (after `distinct()`):* 18   
+*Datasets that it concerns, with count:* nmnhsearch_1 (18), nmnhsearch_4 (18)   
+*Filtered out? (on this file):* No   
+*Issue:* Wilkes/US Exploring Expedition is not written under Special Collections or Collectors. Also, none of the 18 have scanned images.  
+
+**Collector unknown under Collector(s)**   
+*Total observations/rows with this issue (before `distinct()`):* 26   
+*Total observations/rows with this issue (after `distinct()`):* 13   
+*Datasets that it concerns, with count:* nmnhsearch_1 (20), nmnhsearch_3 (1), nmnhsearch_4 (19) (see note below)   
+*Filtered out? (on this file):* No   
+*Issue:* (Note: Some of these as Collector unknown - where Wilkes/US Exploring Expedition is not written under Special Collections or Collectors, and the year is possible - may have been filtered out above). 11 of the 13 do not have scanned images. I can confirm for the other two that they did have the card in the scanned image for this expedition (US South Pacific Exploring Expedition).  
+
+**Small Additional Points (Barcodes included)**   
+*Filtered out? (on this file):* No   
+*Issue:* Barcode 00036144 - Luconia is listed as the collector, but I believe that this is the locality.   
+Barcode 00117213 - did not see Rémy, E. J. written, but also could not zoom in very much to image.   
+Barcode 01107785 - Alex Agassiz listed as the collector. There is no card on the scanned image for this target expedition, and also if this is Alexander Agassiz, he was not on this expedition as he would have been a child. There was a letter from his father to Wilkes though I believe?    
+
+## Filtering from original data frame
+The code block below filters out all of the sections referenced above, where "Filtered out" is Yes.
+```{r maindataframe_filtering}
+int_nmnh_unique1 <- nmnh_bind %>% 
+  distinct() %>% 
+  filter(!grepl("Flora of Micronesia",`Special Collections`)) %>% 
+  filter(!grepl("Blanchard", `Collector(s)`)) %>% 
+  filter(!grepl("Arizona Project",`Special Collections`)) %>% 
+  filter(!is.na(`Collector(s)`)) %>% 
+  filter(!grepl("Stimpson, W.", `Collector(s)`)) %>% 
+  filter(!grepl("Collection of Sylvia A. Earle",`Special Collections`)) %>% 
+  filter(!grepl("Petropaulski", `Collector(s)`)) %>% 
+  filter(!grepl("Smith", `Collector(s)`)) %>% 
+  filter(!grepl("Dall", `Collector(s)`)) %>% 
+  filter(!grepl("Bischoff", `Collector(s)`)) %>% 
+  filter(!grepl("Rothrock", `Collector(s)`)) %>% 
+  filter(!grepl("Fisher", `Collector(s)`)) %>% 
+  filter(!grepl("Fischer", `Collector(s)`)) %>% 
+  filter(!grepl("Bannister", `Collector(s)`)) %>% 
+  filter(!grepl("Cooper", `Collector(s)`)) %>% 
+  filter(!grepl("Ives", `Collector(s)`)) %>%  
+  filter(!grepl("Vasey", `Collector(s)`)) %>% 
+  filter(!grepl("Hough, Mrs. W.", `Collector(s)`)) %>% 
+  filter(!grepl("Hough, W.", `Collector(s)`))
+
+#Had to make a mini dataframe of the flora of hawaii/polynesia issue (see above) to filter it out of the main data (of the correct amount, otherwise more than was supposed to be filtered out was)
+int_minidf1 <- int_nmnh_unique1 %>% 
+  filter(
+    (("Flora of Hawaii" == `Special Collections`) & ("Collector unknown" == `Collector(s)`)) | 
+      (("Flora of Polynesia" == `Special Collections`) & (is.na(`Date Collected`))) | 
+      (`Special Collections` == "Collection of Francis Drouet") | 
+      (`Collector(s)` == "Newberry") | 
+      (`Collector(s)` == "Newberry, -.") | 
+      (`Collector(s)` == "Newberry, J. S.") |
+      (grepl("Wright", `Collector(s)`) & !is.na(`Date Collected`)) | 
+      (grepl("Wright", `Collector(s)`) & is.na(`Date Collected`)))
+
+#for df made above (for those collector unknown that I was unsure if they should fit and then going through all of the scanned images if possible), this is choosing the entries that weren't for sure a part of the target expedition... meaning where the expedition in the scanned image was different than the target expedition, or there just wasn't an expedition listed in the image at all that I could see
+int_minidf2 <- df %>% 
+  filter(Target_Expd_Image == FALSE | is.na(Target_Expd_Image))
+
+#in reference to the thing above, here it is choosing those entries above and looking at the Barcode, and getting what those relevant entries are in the main dataframe
+int_minidf3 <- int_nmnh_unique1[(int_nmnh_unique1$Barcode %in% int_minidf2$Barcode),]
+
+#here we are combining dataframes for the things that we will filter out from the main dataframe
+minidf <- rbind(int_minidf1, int_minidf3)
+
+#here we are filtering out those entries referenced above
+nmnh_unique <- int_nmnh_unique1[!(int_nmnh_unique1$Barcode %in% minidf$Barcode),]
+```
+
+# Post Data Filtering
+## Who gets credit, and for what types of species
+
+The amount of entries in this dataset (post filtering) is:
+```{r echo=FALSE}
+nrow(nmnh_unique)
+```
+
+The amount of entries in this after filtering out NAs from the "Type Citations (Scientific Name : Type Status : Verification Degree : Citation)" column is:
+```{r echo=FALSE}
+nrow(
+  nmnh_unique %>% 
+  filter(!is.na(`Type Citations (Scientific Name : Type Status : Verification Degree : Citation)`))
+)
+```
+
+Here is a little table for the collectors and if an entry that they are associated with had something in the "Type Citations..." column. It shows the amount of entries for each one of those.   
+TypeStatus as TRUE means that there was something in that column, while TypeStatus as FALSE means that it just had an NA. From looking at the table below, we can see that Brackenridge had the most amount of entries with something in the Type Citations column, even though he was the assistant botanist and not the main botanist (William Rich).  
+```{r echo=FALSE}
+#Here I am making a column where if there is stuff in the Type Citations... column then I am putting TRUE, and if there is nothing then I am putting FALSE
+# get first column
+TypeStatus <- nmnh_unique$`Type Citations (Scientific Name : Type Status : Verification Degree : Citation)`                               
+TypeStatus[!is.na(TypeStatus)] <- TRUE                # Replace by true if not na
+TypeStatus[is.na(TypeStatus)] <- FALSE                # Replace by false if yes na
+
+nmnh_unique_t <- cbind(nmnh_unique, TypeStatus)
+
+#Here I am organizing and counting the amount for the presence of type status with collectors
+nmnh_unique_t %>% 
+  group_by(`Collector(s)`, TypeStatus) %>% 
+  count() %>% 
+  rename(count = n)
+```
+
+And here is the same table, but entries filtered out where there really isn't a person in Collector(s)..
+```{r echo=FALSE}
+collect_type <- nmnh_unique_t %>% 
+  filter(`Collector(s)` != "Wilkes Explor. Exped." & 
+           `Collector(s)` != "Collector unknown" & 
+           `Collector(s)` != "Collector unknown; Wilkes Explor. Exped." &
+           `Collector(s)` != "U.S. South Pacific Explor. Exped." & 
+           `Collector(s)` != "Collector illegible; Wilkes Explor. Exped.") %>% 
+  group_by(`Collector(s)`, TypeStatus) %>% 
+  count() %>% 
+  rename(count = n)
+collect_type
+```
+
+From this we can see that Brackenridge has not only has received the most credit for entries with something in the type status column...
+```{r echo=FALSE}
+a <- collect_type %>% 
+  filter(`Collector(s)` == "Brackenridge, W. D.") %>% 
+  filter(TypeStatus == TRUE)
+a$count
+```
+
+...But also the most credit for entries *without* something in the type status column.
+```{r echo=FALSE}
+aa <- collect_type %>% 
+  filter(`Collector(s)` == "Brackenridge, W. D.") %>% 
+  filter(TypeStatus == FALSE)
+aa$count
+```
+
+
+```{r echo=FALSE}
+#all, doesnt matter if typestatus is true or false, adding a group
+collect_type1 <- nmnh_unique_t %>% 
+  filter(TypeStatus == TRUE) %>% 
+  filter(`Collector(s)` != "Wilkes Explor. Exped." & 
+           `Collector(s)` != "Collector unknown" & 
+           `Collector(s)` != "Collector unknown; Wilkes Explor. Exped." &
+           `Collector(s)` != "U.S. South Pacific Explor. Exped." & 
+           `Collector(s)` != "Collector illegible; Wilkes Explor. Exped.") %>% 
+  group_by(`Collector(s)`) %>% 
+  count() %>% 
+  rename(count = n) %>% 
+  add_column(type = "Type Specimen Only")
+#just typestatus as true, adding a group
+collect_type2 <- nmnh_unique_t %>% 
+  filter(TypeStatus == FALSE) %>% 
+  filter(`Collector(s)` != "Wilkes Explor. Exped." & 
+           `Collector(s)` != "Collector unknown" & 
+           `Collector(s)` != "Collector unknown; Wilkes Explor. Exped." &
+           `Collector(s)` != "U.S. South Pacific Explor. Exped." & 
+           `Collector(s)` != "Collector illegible; Wilkes Explor. Exped.") %>% 
+  group_by(`Collector(s)`) %>% 
+  count() %>% 
+  rename(count = n) %>% 
+  add_column(type = "Not Type Specimen")
+#putting these together, now with the group names
+collect_type3 <- rbind(collect_type1, collect_type2)
+```
+
+Let's see what that looks like visualized...
+```{r fig.align="center",echo=FALSE,fig.width = 9}
+ggplot(data = collect_type3, mapping = aes(area = count, fill = `Collector(s)`, label = `Collector(s)`)) + 
+  geom_treemap() +
+  geom_treemap_text(colour = "white",
+                    place = "centre",
+                    size = 15) +
+  facet_grid(. ~type) + 
+  theme_classic() +
+  theme(legend.position = "none", plot.caption = element_text(hjust = 0, size = 10), 
+        strip.text = element_text(size = 10)) + 
+  scale_fill_viridis_d() + 
+  labs(caption = str_wrap("Figure 1: Which collector is given the most credit for regular or type specimens?: This visualization shows the relative proportions of a particular collector's credit for regular or type specimens. Credit for more specimens results in a bigger colored in area on this visualization. ", 150))
+```
+
+
+
+
+
+
+
+
+
+
