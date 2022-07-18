@@ -32,7 +32,7 @@ nmnhsearch_3 <- read_csv("data_raw/nmnhsearch-3.csv") #U.S. Exploring Expedition
 nmnhsearch_4 <- read_csv("data_raw/nmnhsearch-4.csv") #United States Exploring Expedition
 nmnhsearch_5 <- read_csv("data_raw/nmnhsearch-5.csv") #US Exploring Expedition under the command of Capt. Wilkes
 
-nmnh_bind <- rbind(nmnhsearch_1,nmnhsearch_2,nmnhsearch_3, nmnhsearch_4, nmnhsearch_5)
+btny_bind <- rbind(nmnhsearch_1,nmnhsearch_2,nmnhsearch_3, nmnhsearch_4, nmnhsearch_5)
 ```
 
 # Potential Issues
@@ -53,6 +53,20 @@ Even though I only downloaded these five datasets, I am finding data from other 
   
   
 ## Unlikely to have been from the US Exploring Expedition
+
+```{r include=FALSE, eval=FALSE}
+#this is what I used to find the content for the sections below
+whyhere <- btny_unique %>% 
+  select(`Barcode`,`Special Collections`,`Collector(s)`,`Date Collected`,EZID) %>% 
+  filter(!grepl("Wilkes Explor. Exped.", `Collector(s)`)) %>% 
+  filter(!grepl("Wilkes Exploring Expedition",`Special Collections`)) %>% #I filtered out the wilkes exploring expedition from collectors and special collections because those I believed were very likely to be from the actual expedition
+  filter(!grepl("1838|1839|1840|1841|1842", `Date Collected`)) %>% #for those that were "likely to be from the US Exploring Expedition" of the section below, the only change was that I took out the "!" making it : 
+# filter(grepl("1838|1839|1840|1841|1842", `Date Collected`))
+# so that it would look for the ones where the date collected had one of those years associated with it
+  filter(grepl("Collector unknown", `Collector(s)`)) #and collector unknown or collectors would change until I went through all of the collectors or collections that I wasn't sure about (because the year was off or that they didnt have the expedition in collectors or special collections)
+```
+
+
 ### Listed online as - United States Exploring Expedition 
   
 **Flora of Micronesia under Special Collections**   
@@ -407,7 +421,9 @@ Barcode 01107785 - Alex Agassiz listed as the collector. There is no card on the
 ## Filtering from original data frame
 The code block below filters out all of the sections referenced above, where "Filtered out" is Yes.
 ```{r maindataframe_filtering}
-int_nmnh_unique1 <- nmnh_bind %>% 
+#"int_" stands for intermediate
+#"df" for dataframe
+int_btny_unique1 <- btny_bind %>% 
   distinct() %>% 
   filter(!grepl("Flora of Micronesia",`Special Collections`)) %>% 
   filter(!grepl("Blanchard", `Collector(s)`)) %>% 
@@ -430,12 +446,12 @@ int_nmnh_unique1 <- nmnh_bind %>%
   filter(!grepl("Hough, W.", `Collector(s)`))
 
 #Had to make a mini dataframe of the flora of hawaii/polynesia issue (see above) to filter it out of the main data (of the correct amount, otherwise more than was supposed to be filtered out was)
-int_minidf1 <- int_nmnh_unique1 %>% 
+int_minidf1 <- int_btny_unique1 %>% 
   filter(
     (("Flora of Hawaii" == `Special Collections`) & ("Collector unknown" == `Collector(s)`)) | 
       (("Flora of Polynesia" == `Special Collections`) & (is.na(`Date Collected`))) | 
       (`Special Collections` == "Collection of Francis Drouet") | 
-      (`Collector(s)` == "Newberry") | 
+      (`Collector(s)` == "Newberry") |            #the reason I didnt just filter with grepl and Newberry is so that each one of these lines would correspond more with a section above, and because each one of these has its own section above thats why I did it in three different sections. 
       (`Collector(s)` == "Newberry, -.") | 
       (`Collector(s)` == "Newberry, J. S.") |
       (grepl("Wright", `Collector(s)`) & !is.na(`Date Collected`)) | 
@@ -446,27 +462,47 @@ int_minidf2 <- df %>%
   filter(Target_Expd_Image == FALSE | is.na(Target_Expd_Image))
 
 #in reference to the thing above, here it is choosing those entries above and looking at the Barcode, and getting what those relevant entries are in the main dataframe
-int_minidf3 <- int_nmnh_unique1[(int_nmnh_unique1$Barcode %in% int_minidf2$Barcode),]
+int_minidf3 <- int_btny_unique1[(int_btny_unique1$Barcode %in% int_minidf2$Barcode),]
 
 #here we are combining dataframes for the things that we will filter out from the main dataframe
 minidf <- rbind(int_minidf1, int_minidf3)
 
 #here we are filtering out those entries referenced above
-nmnh_unique <- int_nmnh_unique1[!(int_nmnh_unique1$Barcode %in% minidf$Barcode),]
+btny_unique <- int_btny_unique1[!(int_btny_unique1$Barcode %in% minidf$Barcode),]
 ```
 
 # Post Data Filtering
 ## Who gets credit, and for what types of species
 
+This is a comparison of how many entries there were before any filtering or any modifications (in the sections above), and post filtering:    
+```{r echo=FALSE}
+a <- count(btny_unique) %>% 
+  rename(filtered_count = n) %>% 
+  add_column(count_type = "filtered count", .before = "filtered_count") %>% 
+  add_column(unfiltered_count = 0)
+aa <- count(btny_bind) %>% 
+  rename(unfiltered_count = n) %>% 
+  add_column(count_type = "unfiltered count", .before = "unfiltered_count") %>% 
+  add_column(filtered_count = 0)
+
+rbind(aa, a) %>% 
+  ggplot(aes(x=count_type)) + 
+  geom_bar(aes(y=unfiltered_count), stat="identity", position="identity") +
+  geom_bar(aes(y=filtered_count), stat="identity", position="identity") +
+  scale_x_discrete(limits = c("unfiltered count", "filtered count"),
+                  labels = c("unfiltered count", "filtered count")) +
+  theme_light()
+```
+
 The amount of entries in this dataset (post filtering) is:
 ```{r echo=FALSE}
-nrow(nmnh_unique)
+nrow(btny_unique)
 ```
 
 The amount of entries in this after filtering out NAs from the "Type Citations (Scientific Name : Type Status : Verification Degree : Citation)" column is:
 ```{r echo=FALSE}
 nrow(
-  nmnh_unique %>% 
+  btny_unique %>% 
   filter(!is.na(`Type Citations (Scientific Name : Type Status : Verification Degree : Citation)`))
 )
 ```
@@ -476,14 +512,14 @@ TypeStatus as TRUE means that there was something in that column, while TypeStat
 ```{r echo=FALSE}
 #Here I am making a column where if there is stuff in the Type Citations... column then I am putting TRUE, and if there is nothing then I am putting FALSE
 # get first column
-TypeStatus <- nmnh_unique$`Type Citations (Scientific Name : Type Status : Verification Degree : Citation)`                               
+TypeStatus <- btny_unique$`Type Citations (Scientific Name : Type Status : Verification Degree : Citation)`                               
 TypeStatus[!is.na(TypeStatus)] <- TRUE                # Replace by true if not na
 TypeStatus[is.na(TypeStatus)] <- FALSE                # Replace by false if yes na
 
-nmnh_unique_t <- cbind(nmnh_unique, TypeStatus)
+btny_unique_t <- cbind(btny_unique, TypeStatus)
 
 #Here I am organizing and counting the amount for the presence of type status with collectors
-nmnh_unique_t %>% 
+btny_unique_t %>% 
   group_by(`Collector(s)`, TypeStatus) %>% 
   count() %>% 
   rename(count = n)
@@ -491,7 +527,7 @@ nmnh_unique_t %>%
 
 And here is the same table, but entries filtered out where there really isn't a person in Collector(s)..
 ```{r echo=FALSE}
-collect_type <- nmnh_unique_t %>% 
+collect_type <- btny_unique_t %>% 
   filter(`Collector(s)` != "Wilkes Explor. Exped." & 
            `Collector(s)` != "Collector unknown" & 
            `Collector(s)` != "Collector unknown; Wilkes Explor. Exped." &
@@ -505,24 +541,24 @@ collect_type
 
 From this we can see that Brackenridge has not only has received the most credit for entries with something in the type status column...
 ```{r echo=FALSE}
-a <- collect_type %>% 
+brackenridge1 <- collect_type %>% 
   filter(`Collector(s)` == "Brackenridge, W. D.") %>% 
   filter(TypeStatus == TRUE)
-a$count
+brackenridge1$count
 ```
 
 ...But also the most credit for entries *without* something in the type status column.
 ```{r echo=FALSE}
-aa <- collect_type %>% 
+brackenridge2 <- collect_type %>% 
   filter(`Collector(s)` == "Brackenridge, W. D.") %>% 
   filter(TypeStatus == FALSE)
-aa$count
+brackenridge2$count
 ```
 
 
 ```{r echo=FALSE}
 #all, doesnt matter if typestatus is true or false, adding a group
-collect_type1 <- nmnh_unique_t %>% 
+collect_type1 <- btny_unique_t %>% 
   filter(TypeStatus == TRUE) %>% 
   filter(`Collector(s)` != "Wilkes Explor. Exped." & 
            `Collector(s)` != "Collector unknown" & 
@@ -534,7 +570,7 @@ collect_type1 <- nmnh_unique_t %>%
   rename(count = n) %>% 
   add_column(type = "Type Specimen Only")
 #just typestatus as true, adding a group
-collect_type2 <- nmnh_unique_t %>% 
+collect_type2 <- btny_unique_t %>% 
   filter(TypeStatus == FALSE) %>% 
   filter(`Collector(s)` != "Wilkes Explor. Exped." & 
            `Collector(s)` != "Collector unknown" & 
@@ -563,13 +599,5 @@ ggplot(data = collect_type3, mapping = aes(area = count, fill = `Collector(s)`, 
   scale_fill_viridis_d() + 
   labs(caption = str_wrap("Figure 1: Which collector is given the most credit for regular or type specimens?: This visualization shows the relative proportions of a particular collector's credit for regular or type specimens. Credit for more specimens results in a bigger colored in area on this visualization. ", 150))
 ```
-
-
-
-
-
-
-
-
 
 
