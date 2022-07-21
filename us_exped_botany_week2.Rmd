@@ -597,7 +597,7 @@ ggplot(data = collect_type3, mapping = aes(area = count, fill = `Collector(s)`, 
   theme(legend.position = "none", plot.caption = element_text(hjust = 0, size = 10), 
         strip.text = element_text(size = 10)) + 
   scale_fill_viridis_d() + 
-  labs(caption = str_wrap("Figure 1: Which collector is given the most credit for regular or type specimens?: This visualization shows the relative proportions of a particular collector's credit for regular or type specimens. Credit for more specimens results in a bigger colored in area on this visualization. ", 150))
+  labs(caption = str_wrap("Figure 1: Which collector is given the most credit for regular or type specimens?: This visualization shows the relative proportions of a particular collector's credit for regular or type specimens. Credit for more specimens results in a bigger colored in area on this visualization.The visualizations for Not Type Specimen and Type Specimen Only do not have the same total specimen count -- these visualizations are only showing relative proportions of their respective whole. ", 145))
 ```
 
 
