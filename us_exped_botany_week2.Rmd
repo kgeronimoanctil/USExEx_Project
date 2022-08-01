@@ -13,9 +13,9 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 
 library(plyr)
-library(tidyverse)
 library(viridis)
 library(treemapify)
+library(tidyverse)
 ```
 
 Downloading information from [the botany collections/website](https://collections.nmnh.si.edu/search/botany/#new-search) at nmnh, going to the *Search by Field* tab, going down to *Expedition* and then clicking on entries related to the Wilkes Expedition. These are the relevant entries that I downloaded to csv.
@@ -382,7 +382,7 @@ df <- rbind(
   c("01317224", TRUE, TRUE, NA, NA)
 ) %>% 
   as_tibble() %>% 
-  rename(Barcode = V1, Target_Expd_EZIDdata = V2, Target_Expd_Image = V3, Is_Possible_Date = V4, Note = V5) %>% 
+  dplyr::rename(Barcode = V1, Target_Expd_EZIDdata = V2, Target_Expd_Image = V3, Is_Possible_Date = V4, Note = V5) %>% 
   transform(Target_Expd_EZIDdata = as.logical(Target_Expd_EZIDdata), 
             Target_Expd_Image = as.logical(Target_Expd_Image),
             Is_Possible_Date = as.logical(Is_Possible_Date))
@@ -476,24 +476,34 @@ btny_unique <- int_btny_unique1[!(int_btny_unique1$Barcode %in% minidf$Barcode),
 ## Who gets credit, and for what types of species
 
 This is a comparison of how many entries there were before any filtering or any modifications (in the sections above), and post filtering:    
-```{r echo=FALSE}
-a1 <- count(btny_unique) %>% 
-  rename(count = n) %>% 
-  add_column(count_type = "general filtered", .before = "count")
-a2 <- count(btny_bind) %>% 
-  rename(count = n) %>% 
-  add_column(count_type = "unfiltered", .before = "count")
-a3 <- count(
-  btny_unique %>% filter(!is.na(`Type Citations (Scientific Name : Type Status : Verification Degree : Citation)`))) %>% 
-  rename(count = n) %>% 
-  add_column(count_type = "type specimens", .before = "count")
+```{r echo=FALSE,fig.height=8, fig.width=4}
+a1 <- dplyr::summarize(btny_unique, count1 = n()) %>% 
+  add_column(count_type = "general filtered", .before = "count1") %>% 
+  add_column(count2 = 0) %>% 
+  add_column(count3 = 0)
+a2 <- dplyr::summarize(btny_bind, count2 = n()) %>% 
+  add_column(count_type = "unfiltered", .before = "count2") %>% 
+  add_column(count1 = 0, .before = "count2") %>% 
+  add_column(count3 = 0)
+a3 <- btny_unique %>% 
+  filter(!is.na(`Type Citations (Scientific Name : Type Status : Verification Degree : Citation)`)) %>% 
+  dplyr::summarize(count3 = n()) %>% 
+  add_column(count_type = "type specimens", .before = "count3") %>% 
+  add_column(count1 = 0, .before = "count3") %>% 
+  add_column(count2 = 0, .before = "count3")
 
 rbind(a1, a2, a3) %>% 
-  ggplot(aes(x=count_type, y=count)) + 
-  geom_bar(stat="identity", position="identity") +
-  scale_x_discrete(limits = c("unfiltered", "general filtered", "type specimens"),
-                   labels = c("unfiltered", "general filtered", "type specimens")) +
-  theme_light()
+  add_column(count_type1 = "count type") %>% 
+  ggplot(aes(x=count_type1)) + 
+  geom_bar(aes(y=count1), stat="identity", position="identity", alpha=.3, fill='bisque4') +
+  geom_bar(aes(y=count2), stat="identity", position="identity", alpha=.4, fill='bisque4') +
+  geom_bar(aes(y=count3), stat="identity", position="identity", alpha=.5, fill='bisque4') +
+  theme_bw() +
+  annotate("text", x = 1, y = 11866, label = "Completely Unfiltered") +
+  annotate("text", x = 1, y = 3995, label = "General Filtered") +
+  annotate("text", x = 1, y = 425, label = "Type Specimens") +
+  theme(axis.text.x = element_blank(), plot.caption = element_text(hjust = 0, size = 10)) +
+  labs(y = "Count", x = "Count Type", caption = str_wrap("Figure 1: Comparison of unfiltered and filtered downloads from the NMNH Botany website", 50))
 ```
 
 The amount of entries in this dataset (post filtering) is:
@@ -524,8 +534,7 @@ btny_unique_t <- cbind(btny_unique, TypeStatus)
 #Here I am organizing and counting the amount for the presence of type status with collectors
 btny_unique_t %>% 
   group_by(`Collector(s)`, TypeStatus) %>% 
-  count() %>% 
-  rename(count = n)
+  dplyr::summarize(count = n())
 ```
 
 And here is the same table, but entries filtered out where there really isn't a person in Collector(s)..
@@ -537,8 +546,7 @@ collect_type <- btny_unique_t %>%
            `Collector(s)` != "U.S. South Pacific Explor. Exped." & 
            `Collector(s)` != "Collector illegible; Wilkes Explor. Exped.") %>% 
   group_by(`Collector(s)`, TypeStatus) %>% 
-  count() %>% 
-  rename(count = n)
+  dplyr::summarize(count = n())
 collect_type
 ```
 
@@ -569,8 +577,7 @@ collect_type1 <- btny_unique_t %>%
            `Collector(s)` != "U.S. South Pacific Explor. Exped." & 
            `Collector(s)` != "Collector illegible; Wilkes Explor. Exped.") %>% 
   group_by(`Collector(s)`) %>% 
-  count() %>% 
-  rename(count = n) %>% 
+  dplyr::summarize(count = n()) %>% 
   add_column(type = "Type Specimen Only")
 #just typestatus as true, adding a group
 collect_type2 <- btny_unique_t %>% 
@@ -581,15 +588,14 @@ collect_type2 <- btny_unique_t %>%
            `Collector(s)` != "U.S. South Pacific Explor. Exped." & 
            `Collector(s)` != "Collector illegible; Wilkes Explor. Exped.") %>% 
   group_by(`Collector(s)`) %>% 
-  count() %>% 
-  rename(count = n) %>% 
+  dplyr::summarize(count = n()) %>% 
   add_column(type = "Not Type Specimen")
 #putting these together, now with the group names
 collect_type3 <- rbind(collect_type1, collect_type2)
 ```
 
 Let's see what that looks like visualized...
-```{r fig.align="center",echo=FALSE,fig.width = 9}
+```{r fig.align="center",echo=FALSE,fig.width = 11, fig.height=7}
 ggplot(data = collect_type3, mapping = aes(area = count, fill = `Collector(s)`, label = `Collector(s)`)) + 
   geom_treemap() +
   geom_treemap_text(colour = "white",
@@ -597,10 +603,8 @@ ggplot(data = collect_type3, mapping = aes(area = count, fill = `Collector(s)`, 
                     size = 15) +
   facet_grid(. ~type) + 
   theme_classic() +
-  theme(legend.position = "none", plot.caption = element_text(hjust = 0, size = 10), 
-        strip.text = element_text(size = 10)) + 
+  theme(legend.position = "none", plot.caption = element_text(hjust = 0, size = 11), 
+        strip.text = element_text(size = 11)) + 
   scale_fill_viridis(discrete = TRUE, option = "D") +
-  labs(caption = str_wrap("Figure 1: Which collector is given the most credit for regular or type specimens?: This visualization shows the relative proportions of a particular collector's credit for regular or type specimens. Credit for more specimens results in a bigger colored in area on this visualization. The visualizations for Not Type Specimen and Type Specimen Only do not have the same total specimen count -- these visualizations are only showing relative proportions of their respective whole. ", 145))
+  labs(caption = str_wrap("Figure 2: Which collector is given the most credit for regular or type specimens?: This visualization shows the relative proportions of a particular collector's credit for regular or type specimens. Credit for more specimens results in a bigger colored in area on this visualization. The visualizations for Not Type Specimen and Type Specimen Only do not have the same total specimen count -- these visualizations are only showing relative proportions of their respective whole. ", 170))
 ```
-
-
