@@ -1,7 +1,7 @@
 ---
 title: "US Exploring Expedition, Botany at NMNH"
 author: "Kayla Geronimo-Anctil"
-date: "7/18/2022"
+date: "8/1/2022"
 output: 
   html_document:
     df_print: paged
@@ -469,8 +469,97 @@ int_minidf3 <- int_btny_unique1[(int_btny_unique1$Barcode %in% int_minidf2$Barco
 minidf <- rbind(int_minidf1, int_minidf3)
 
 #here we are filtering out those entries referenced above
-btny_unique <- int_btny_unique1[!(int_btny_unique1$Barcode %in% minidf$Barcode),]
+btny_unique1 <- int_btny_unique1[!(int_btny_unique1$Barcode %in% minidf$Barcode),]
+
+
+#1891 is correct... but Alex Agassiz was a child during the Wilkes Expedition (i think his father might have been on it though?) and also there is nothing about the wilkes expedition on this EZID-- scanned image.
+#1953 is correct... but no wilkes expedition label on this EZID -- scanned image
+#I found out about needing to filter out these rows during the work of trying to clean up the date collected column
+#I will use these new columns later on for cleaning up the date collected column - making new ones
+btny_unique <- btny_unique1 %>% 
+  filter(!grepl("1891|1953", `Date Collected`)) %>% 
+  mutate(mod_startyear = `Date Collected`) %>%  #modified year, just showing that it isnt the original
+  mutate(mod_endyear = `Date Collected`)
 ```
+
+#Cleaning up the date collected situation
+
+##Modified Year Columns
+
+```{r}
+#If a cell has parentheses, and those parentheses start off with a dash, then remove it. \s is for whitespace.
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, "\\s*\\(-.*\\)", "")
+btny_unique$mod_endyear   <- str_replace(btny_unique$mod_endyear,   "\\s*\\(-.*\\)", "")
+
+btny_unique$mod_startyear[is.na(btny_unique$`Date Collected`)] <- 1838
+btny_unique$mod_endyear[  is.na(btny_unique$`Date Collected`)] <- 1842
+```
+
+```{r mod_startyearMODIFICATIONS}
+#"\\s*\\([^\\)]+\\)" is the same as "\\s*\\(.*?\\)" I think?
+#removing what is in the parentheses. except for that I added two dashes at the beginning, so that it would only get rid of the ones with that match
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, "--.*",     "1838")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1838.*", "1838")
+#for the line immediately above, the reason that it doesn't follow the format of the below lines is because 1838 in any place before or after the to/or and 1838 will be the beginning of the possible date collected (because the target expedition left in 1838). I also checked this with...(look at the commented out code) to be sure that this would work
+    #btny_unique %>% 
+    #  filter(grepl(".*1838.*", mod_startyear)) %>% 
+    #  group_by(mod_startyear) %>% 
+    #  summarize(n=n())
+#for the lines below, I am relying on the convention that smaller years are said first
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1839.*to.*|.*1839.*or.*", "1839")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1840.*to.*|.*1840.*or.*", "1840")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1841.*to.*|.*1841.*or.*", "1841")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1842.*to.*|.*1842.*or.*", "1842")
+
+#For the lines of code below (for the rest of this chunk!), I had to check the dataframe using group_by(mod_startyear, mod_endyear) %>% summarize(n=n()). I had to make sure that the ones with the year at the end (example of what I mean: 1 June 2020 (ideal) vs 1 May 2019 to 1 June 2020(unideal)) were ideal. If not, I had to filter out something before it (order matters, unless I checked the EZID and the other date didnt make sense - but see the more specific comments for more details).
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1839$", "1839")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1841$", "1841")
+#1842 is below, but it must come after 1832.
+
+#Continuing on what I said before... these years are a bit weird. I followed the EZID and looked at the scanned image. I did not see the referred to year in the scanned image/s, but I did often see the Wilkes Expedition Label, so I would change it to 1838. Other dates listed in the images (or in the case of 1854, on the "Date Collected") were either in reference to year of determination or as reference to the botany volumes/reports.
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1826$",  "1838")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1832.*", "1838")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1842$",  "1842") #must come after 1832
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1854$",  "1838")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1900$",  "1838")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1941.*", "1838")
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, ".*1946.*", "1838")
+```
+
+```{r mod_endyearMODIFICATIONS}
+#removing what is in the parentheses. except for that I added two dashes at the beginning, so that it would only get rid of the ones with that match
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, "--.*",     "1842")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1842.*", "1842")
+#for the line immediately above, the reason that it doesn't follow the format of the below lines is because 1842 in any place before or after the to/or and 1842 will be the end of the possible date collected (because the target expedition ended in 1842). I also checked this with...(look at the commented out code) to be sure that this would work
+    #btny_unique %>% 
+    #  filter(grepl(".*1842.*", mod_endyear)) %>% 
+    #  group_by(mod_endyear) %>% 
+    #  summarize(n=n())
+#for the lines below, I am relying on the convention that bigger years are said last
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*to.*1838.*|.*or.*1838.*", "1838")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*to.*1839.*|.*or.*1839.*", "1839")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*to.*1840.*|.*or.*1840.*", "1840")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*to.*1841.*|.*or.*1841.*", "1841")
+
+#For the lines of code below (for the rest of this chunk!), I had to check the dataframe using group_by(mod_startyear, mod_endyear) %>% summarize(n=n()). I had to make sure that the ones with the year at the end were ideal. If not, I had to filter out something before it (order matters, unless I checked the EZID and the other date didnt make sense - but see the more specific comments for more details).
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1838$", "1838")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1839$", "1839")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1841$", "1841")
+
+#Continuing on what I said before... these years are a bit weird. I followed the EZID and looked at the scanned image. I did not see the referred to year in the scanned image/s, but I did often see the Wilkes Expedition Label, so I would change it to 1842. Other dates listed in the images (or in the case of 1854, on the "Date Collected") were either in reference to year of determination or as reference to the botany volumes/reports.
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1826$", "1842")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1832$", "1842")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1854$", "1842")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1900$", "1842")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1941$", "1842")
+btny_unique$mod_endyear <- str_replace(btny_unique$mod_endyear, ".*1946$", "1842")
+```
+
+```{r}
+btny_unique$mod_startyear <- str_replace(btny_unique$mod_startyear, "...-|...\\?", "1838")
+btny_unique$mod_endyear   <- str_replace(btny_unique$mod_endyear,   "...-|...\\?", "1842")
+```
+
 
 # Post Data Filtering
 ## Who gets credit, and for what types of species
@@ -608,3 +697,7 @@ ggplot(data = collect_type3, mapping = aes(area = count, fill = `Collector(s)`, 
   scale_fill_viridis(discrete = TRUE, option = "D") +
   labs(caption = str_wrap("Figure 2: Which collector is given the most credit for regular or type specimens?: This visualization shows the relative proportions of a particular collector's credit for regular or type specimens. Credit for more specimens results in a bigger colored in area on this visualization. The visualizations for Not Type Specimen and Type Specimen Only do not have the same total specimen count -- these visualizations are only showing relative proportions of their respective whole. ", 170))
 ```
+
+
+
+I am still working on making the modified month and day columns and their code look neater
