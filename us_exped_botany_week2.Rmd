@@ -476,13 +476,37 @@ btny_unique1 <- int_btny_unique1[!(int_btny_unique1$Barcode %in% minidf$Barcode)
 #1953 is correct... but no wilkes expedition label on this EZID -- scanned image
 #I found out about needing to filter out these rows during the work of trying to clean up the date collected column
 #I will use these new columns later on for cleaning up the date collected column - making new ones
-btny_unique <- btny_unique1 %>% 
+btny_unique2 <- btny_unique1 %>% 
   filter(!grepl("1891|1953", `Date Collected`)) %>% 
   mutate(mod_startyear = `Date Collected`) %>%  #modified year, just showing that it isnt the original
   mutate(mod_endyear = `Date Collected`)
 ```
 
 #Cleaning up the date collected situation
+
+##Modified Month Column
+
+```{r mod_monthMODIFICATIONS}
+#HAS to be most specific to most general. just Jan and just Feb are equal on general levels, but Jan|Feb must go first
+btny_unique <- btny_unique2 %>% 
+  mutate(mod_month = case_when(
+    grepl("Jan", `Date Collected`) & grepl("Feb", `Date Collected`) ~ "Jan|Feb", 
+    grepl("Jan", `Date Collected`) ~ "Jan", 
+    grepl("Feb", `Date Collected`) ~ "Feb" ))
+
+#I didn't do the below in the same style/group as the above line of code because I did it before the January February issue
+#where there is a string match for any march variant in the date collected column, put in March in the mod_month column
+btny_unique$mod_month[grepl("Mar", btny_unique$`Date Collected`)] <- "Mar"
+btny_unique$mod_month[grepl("Apr", btny_unique$`Date Collected`)] <- "Apr"
+btny_unique$mod_month[grepl("May", btny_unique$`Date Collected`)] <- "May"
+btny_unique$mod_month[grepl("Jun", btny_unique$`Date Collected`)] <- "Jun"
+btny_unique$mod_month[grepl("Jul", btny_unique$`Date Collected`)] <- "Jul"
+btny_unique$mod_month[grepl("Aug", btny_unique$`Date Collected`)] <- "Aug"
+btny_unique$mod_month[grepl("Sep", btny_unique$`Date Collected`)] <- "Sep"
+btny_unique$mod_month[grepl("Oct", btny_unique$`Date Collected`)] <- "Oct"
+btny_unique$mod_month[grepl("Nov", btny_unique$`Date Collected`)] <- "Nov"
+btny_unique$mod_month[grepl("Dec", btny_unique$`Date Collected`)] <- "Dec"
+```
 
 ##Modified Year Columns
 
